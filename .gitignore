@@ -1,13 +1,47 @@
-# Build output / runtime
+# ─── Build output / runtime ───────────────────────────────────────
 *.bak
 *.backup-*
 *.tmp
 .DS_Store
 *.swp
 
-# Generated locally
+# ─── Generated locally ────────────────────────────────────────────
 AUDIT_REPORT.md
 
-# User-specific
+# ─── User-specific editor configs ─────────────────────────────────
 .vscode/
 .idea/
+
+# ─── Secrets & credenciales (NUNCA commitear) ─────────────────────
+# Estos patrones evitan exponer secretos accidentalmente.
+# GitHub push protection es la segunda línea de defensa.
+.env
+.env.*
+!.env.example
+!.env.template
+
+# Llaves privadas SSH / TLS
+*.key
+*.pem
+*.pfx
+*.p12
+id_rsa
+id_rsa.*
+id_ed25519
+id_ed25519.*
+id_ecdsa
+id_ecdsa.*
+
+# Credenciales cloud / servicios
+credentials.json
+credentials/
+service-account*.json
+.aws/credentials
+.gcp/
+*.kubeconfig
+.kube/config
+
+# Tokens locales (por si un contributor pega un token por error)
+*.token
+.netrc
+.npmrc
