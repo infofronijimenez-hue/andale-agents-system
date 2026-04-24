@@ -1,0 +1,86 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  lint-and-audit:
+    name: Lint + Audit (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Make scripts executable
+        run: chmod +x scripts/*.sh install.sh
+
+      - name: Verify shebang and basic syntax
+        run: |
+          for f in scripts/*.sh install.sh; do
+            echo "→ bash -n $f"
+            bash -n "$f"
+          done
+
+      - name: Install ShellCheck
+        run: |
+          if [ "$RUNNER_OS" = "Linux" ]; then
+            sudo apt-get update && sudo apt-get install -y shellcheck
+          else
+            brew install shellcheck
+          fi
+
+      - name: Run ShellCheck
+        run: |
+          shellcheck --severity=warning scripts/*.sh install.sh || exit 1
+
+      - name: Run lint-agent on all agents
+        env:
+          AGENTS_DIR: ${{ github.workspace }}/agents
+          LINTER: ${{ github.workspace }}/scripts/lint-agent.sh
+        run: |
+          # Simular el layout esperado por audit-all.sh
+          mkdir -p ~/.claude
+          ln -sf "$AGENTS_DIR" ~/.claude/agents
+          mkdir -p ~/.claude/scripts
+          cp scripts/*.sh ~/.claude/scripts/
+          chmod +x ~/.claude/scripts/*.sh
+          ~/.claude/scripts/audit-all.sh --fail-on-critical
+
+      - name: Upload audit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: audit-report-${{ matrix.os }}
+          path: ~/.claude/AUDIT_REPORT.md
+          if-no-files-found: ignore
+
+  schema-validation:
+    name: Frontmatter schema check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check frontmatter presence
+        run: |
+          missing=0
+          while IFS= read -r f; do
+            if ! head -1 "$f" | grep -q '^---$'; then
+              echo "::warning file=$f::missing frontmatter"
+              missing=$((missing+1))
+            fi
+          done < <(find agents -name '*.md' \
+            ! -name 'SCHEMA.md' ! -name 'AGENTS_INDEX.md' \
+            ! -name 'OVERLAP_MAP.md' ! -name 'README.md')
+          echo "Agents without frontmatter: $missing"
+          [ "$missing" -eq 0 ]

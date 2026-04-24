@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 Discussions
+    url: https://github.com/infofronijimenez-hue/andale-agents-system/discussions
+    about: Preguntas abiertas, ideas, show-and-tell. Usa issues solo para bugs o propuestas concretas.
+  - name: 🛡️ Security vulnerability
+    url: https://github.com/infofronijimenez-hue/andale-agents-system/security/advisories/new
+    about: Reporta vulnerabilidades en privado (NO uses issues públicos para esto).

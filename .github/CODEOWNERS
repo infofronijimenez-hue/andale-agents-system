@@ -1,0 +1,21 @@
+# CODEOWNERS — review automático por path
+# Docs: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-security/customizing-your-repository/about-code-owners
+
+# Default: cualquier cambio requiere review del maintainer
+*                               @infofronijimenez-hue
+
+# Scripts críticos (linter, auditoría, instalador) — review obligatorio
+/scripts/                       @infofronijimenez-hue
+/install.sh                     @infofronijimenez-hue
+/.github/                       @infofronijimenez-hue
+
+# Agentes por dominio (por si hay contribuidores futuros)
+/agents/engineering/            @infofronijimenez-hue
+/agents/specialized/            @infofronijimenez-hue
+/agents/strategy/               @infofronijimenez-hue
+
+# Schema y documentación estructural
+/agents/SCHEMA.md               @infofronijimenez-hue
+/AGENTS_INDEX.md                @infofronijimenez-hue
+/THREAT_MODEL.md                @infofronijimenez-hue
+/SECURITY.md                    @infofronijimenez-hue

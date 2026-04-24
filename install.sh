@@ -104,13 +104,85 @@ echo "🔍 Validando instalación (audit completo)..."
 if "$TARGET_SCRIPTS/audit-all.sh" --report 2>&1 | tail -8; then
   echo ""
   echo "✅ Instalación OK."
-  echo ""
-  echo "Próximos pasos:"
-  echo "  1. Activa un agente: 'Hey Claude, activate Frontend Developer mode'"
-  echo "  2. Ver el índice:    open ~/.claude/AGENTS_INDEX.md"
-  echo "  3. Ver el reporte:   open ~/.claude/AUDIT_REPORT.md"
-  echo "  4. Audit semanal:    $TARGET_SCRIPTS/audit-all.sh --report"
 else
   echo "⚠️  El audit reportó findings — revisa ~/.claude/AUDIT_REPORT.md"
   exit 1
 fi
+
+# ─── Post-install validation mejorada ──────────────────────────────────────
+echo ""
+echo "🔐 Verificación post-install (permisos + integridad)..."
+POST_FAIL=0
+
+# 1. Permisos del directorio de agentes (755)
+if [[ -d "$TARGET_AGENTS" ]]; then
+  dir_perms=$(stat -f '%Lp' "$TARGET_AGENTS" 2>/dev/null || stat -c '%a' "$TARGET_AGENTS" 2>/dev/null)
+  if [[ "$dir_perms" != "755" ]]; then
+    echo "  ⚠️  $TARGET_AGENTS tiene permisos $dir_perms — corrigiendo a 755"
+    chmod 755 "$TARGET_AGENTS"
+  else
+    echo "  ✅ $TARGET_AGENTS permisos 755"
+  fi
+fi
+
+# 2. Permisos de archivos de agentes (644)
+bad_files=$(find "$TARGET_AGENTS" -type f -name "*.md" ! -perm 644 2>/dev/null | wc -l | tr -d ' ')
+if [[ "$bad_files" -gt 0 ]]; then
+  echo "  ⚠️  $bad_files archivo(s) con permisos distintos a 644 — corrigiendo"
+  find "$TARGET_AGENTS" -type f -name "*.md" -exec chmod 644 {} \;
+else
+  echo "  ✅ Archivos de agentes con permisos 644"
+fi
+
+# 3. Permisos de scripts (755)
+bad_scripts=$(find "$TARGET_SCRIPTS" -type f -name "*.sh" ! -perm 755 2>/dev/null | wc -l | tr -d ' ')
+if [[ "$bad_scripts" -gt 0 ]]; then
+  echo "  ⚠️  $bad_scripts script(s) con permisos distintos a 755 — corrigiendo"
+  find "$TARGET_SCRIPTS" -type f -name "*.sh" -exec chmod 755 {} \;
+else
+  echo "  ✅ Scripts con permisos 755"
+fi
+
+# 4. Integridad: cada agente del repo debe estar en ~/.claude/agents/
+REPO_COUNT=$(find "$REPO_DIR/agents" -type f -name "*.md" | wc -l | tr -d ' ')
+INSTALLED_COUNT=$(find "$TARGET_AGENTS" -type f -name "*.md" | wc -l | tr -d ' ')
+MISSING=0
+while IFS= read -r f; do
+  rel="${f#$REPO_DIR/agents/}"
+  [[ ! -f "$TARGET_AGENTS/$rel" ]] && MISSING=$((MISSING+1))
+done < <(find "$REPO_DIR/agents" -type f -name "*.md")
+if [[ $MISSING -gt 0 ]]; then
+  echo "  ❌ $MISSING agente(s) del repo NO están en $TARGET_AGENTS"
+  POST_FAIL=1
+else
+  echo "  ✅ Integridad OK — $REPO_COUNT agentes del repo presentes ($INSTALLED_COUNT totales instalados)"
+fi
+
+# 5. lint-agent.sh ejecutable
+if [[ -x "$TARGET_SCRIPTS/lint-agent.sh" ]]; then
+  echo "  ✅ lint-agent.sh ejecutable"
+else
+  echo "  ❌ lint-agent.sh NO ejecutable"
+  POST_FAIL=1
+fi
+
+# 6. Índice generado
+if [[ -f "$HOME/.claude/AGENTS_INDEX.md" ]] && [[ -s "$HOME/.claude/AGENTS_INDEX.md" ]]; then
+  echo "  ✅ AGENTS_INDEX.md generado ($(wc -l < "$HOME/.claude/AGENTS_INDEX.md" | tr -d ' ') líneas)"
+else
+  echo "  ❌ AGENTS_INDEX.md no existe o está vacío"
+  POST_FAIL=1
+fi
+
+if [[ $POST_FAIL -eq 1 ]]; then
+  echo ""
+  echo "⚠️  Validación post-install reportó problemas — revisa arriba."
+  exit 1
+fi
+
+echo ""
+echo "Próximos pasos:"
+echo "  1. Activa un agente: 'Hey Claude, activate Frontend Developer mode'"
+echo "  2. Ver el índice:    open ~/.claude/AGENTS_INDEX.md"
+echo "  3. Ver el reporte:   open ~/.claude/AUDIT_REPORT.md"
+echo "  4. Audit semanal:    $TARGET_SCRIPTS/audit-all.sh --report"

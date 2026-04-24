@@ -1,0 +1,82 @@
+#!/usr/bin/env bash
+# pre-commit — Lintea agentes staged antes de permitir commit.
+#
+# Instalar (una vez por clone):
+#   git config core.hooksPath .githooks
+#
+# Comportamiento:
+#   - exit 2 (crítico) en cualquier agente → BLOQUEA commit
+#   - exit 1 (warning)                     → muestra warnings, permite commit
+#   - lint-agent.sh ausente o no exec      → aborta con mensaje claro
+#
+# Owner: Froni Jimenez | Creado: 2026-04-24 | v1.0.0
+
+set -e
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+LINTER="$REPO_ROOT/scripts/lint-agent.sh"
+
+# Colores (solo si stdout es TTY)
+if [[ -t 1 ]]; then
+  RED=$'\033[0;31m'; YLW=$'\033[1;33m'; GRN=$'\033[0;32m'; BLD=$'\033[1m'; NC=$'\033[0m'
+else
+  RED=""; YLW=""; GRN=""; BLD=""; NC=""
+fi
+
+# Verificar linter disponible
+if [[ ! -f "$LINTER" ]]; then
+  echo "${RED}✗ pre-commit: lint-agent.sh no existe en $LINTER${NC}" >&2
+  echo "  Asegúrate de estar en la raíz del repo andale-agents-system." >&2
+  exit 1
+fi
+if [[ ! -x "$LINTER" ]]; then
+  echo "${RED}✗ pre-commit: lint-agent.sh no es ejecutable${NC}" >&2
+  echo "  Ejecuta: chmod +x $LINTER" >&2
+  exit 1
+fi
+
+# Agentes staged (A=added, M=modified; ignora D=deleted)
+STAGED=()
+while IFS= read -r line; do
+  [[ -n "$line" ]] && STAGED+=("$line")
+done < <(git diff --cached --name-only --diff-filter=AM -- 'agents/*.md')
+
+if [[ ${#STAGED[@]} -eq 0 ]]; then
+  exit 0
+fi
+
+echo "${BLD}🔍 pre-commit: linting ${#STAGED[@]} agente(s) staged...${NC}"
+
+TOTAL_CRIT=0
+TOTAL_WARN=0
+FAIL_FILES=()
+
+for f in "${STAGED[@]}"; do
+  [[ ! -f "$REPO_ROOT/$f" ]] && continue
+  set +e
+  "$LINTER" "$REPO_ROOT/$f" >/tmp/precommit-lint.$$ 2>&1
+  code=$?
+  set -e
+  case $code in
+    0) echo "  ${GRN}✓ OK${NC}     $f" ;;
+    1) echo "  ${YLW}⚠ WARN${NC}   $f"; TOTAL_WARN=$((TOTAL_WARN+1)); cat /tmp/precommit-lint.$$ | sed 's/^/      /' ;;
+    2) echo "  ${RED}✗ FAIL${NC}   $f"; TOTAL_CRIT=$((TOTAL_CRIT+1)); FAIL_FILES+=("$f"); cat /tmp/precommit-lint.$$ | sed 's/^/      /' ;;
+  esac
+  rm -f /tmp/precommit-lint.$$
+done
+
+echo ""
+if [[ $TOTAL_CRIT -gt 0 ]]; then
+  echo "${RED}${BLD}✗ COMMIT BLOQUEADO — $TOTAL_CRIT agente(s) con críticos:${NC}" >&2
+  for f in "${FAIL_FILES[@]}"; do echo "   - $f" >&2; done
+  echo "" >&2
+  echo "Corrige los críticos o salta con: git commit --no-verify (no recomendado)" >&2
+  exit 1
+fi
+
+if [[ $TOTAL_WARN -gt 0 ]]; then
+  echo "${YLW}⚠ $TOTAL_WARN warning(s) detectados — commit permitido.${NC}"
+fi
+
+echo "${GRN}✓ pre-commit OK${NC}"
+exit 0
