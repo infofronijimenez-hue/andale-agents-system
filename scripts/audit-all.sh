@@ -152,6 +152,7 @@ if [[ $WRITE_REPORT -eq 1 ]]; then
     echo "Ejecutar semanalmente:"
     echo ""
     echo '```bash'
+    # shellcheck disable=SC2088  # literal tilde for display in markdown
     echo '~/.claude/scripts/audit-all.sh --report'
     echo '```'
   } > "$REPORT"

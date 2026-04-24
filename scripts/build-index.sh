@@ -131,12 +131,14 @@ trap 'rm -f "$TMP"' EXIT
   echo "## 🔍 Cómo regenerar"
   echo ""
   echo '```bash'
+  # shellcheck disable=SC2088  # literal tilde for display in markdown
   echo '~/.claude/scripts/build-index.sh'
   echo '```'
   echo ""
   echo "## 🛡️ Cómo auditar"
   echo ""
   echo '```bash'
+  # shellcheck disable=SC2088  # literal tilde for display in markdown
   echo '~/.claude/scripts/audit-all.sh'
   echo '```'
 } > "$TMP"
