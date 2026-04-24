@@ -16,6 +16,11 @@ set -e
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 LINTER="$REPO_ROOT/scripts/lint-agent.sh"
 
+# Archivos temp seguros (mktemp evita race conditions y colisiones)
+LINT_TMP=$(mktemp -t precommit-lint.XXXXXX)
+INDEX_TMP=$(mktemp -t precommit-index.XXXXXX)
+trap 'rm -f "$LINT_TMP" "$INDEX_TMP"' EXIT
+
 # Colores (solo si stdout es TTY)
 if [[ -t 1 ]]; then
   RED=$'\033[0;31m'; YLW=$'\033[1;33m'; GRN=$'\033[0;32m'; BLD=$'\033[1m'; NC=$'\033[0m'
@@ -54,15 +59,15 @@ FAIL_FILES=()
 for f in "${STAGED[@]}"; do
   [[ ! -f "$REPO_ROOT/$f" ]] && continue
   set +e
-  "$LINTER" "$REPO_ROOT/$f" >/tmp/precommit-lint.$$ 2>&1
+  "$LINTER" "$REPO_ROOT/$f" >"$LINT_TMP" 2>&1
   code=$?
   set -e
   case $code in
     0) echo "  ${GRN}✓ OK${NC}     $f" ;;
-    1) echo "  ${YLW}⚠ WARN${NC}   $f"; TOTAL_WARN=$((TOTAL_WARN+1)); cat /tmp/precommit-lint.$$ | sed 's/^/      /' ;;
-    2) echo "  ${RED}✗ FAIL${NC}   $f"; TOTAL_CRIT=$((TOTAL_CRIT+1)); FAIL_FILES+=("$f"); cat /tmp/precommit-lint.$$ | sed 's/^/      /' ;;
+    1) echo "  ${YLW}⚠ WARN${NC}   $f"; TOTAL_WARN=$((TOTAL_WARN+1)); cat "$LINT_TMP" | sed 's/^/      /' ;;
+    2) echo "  ${RED}✗ FAIL${NC}   $f"; TOTAL_CRIT=$((TOTAL_CRIT+1)); FAIL_FILES+=("$f"); cat "$LINT_TMP" | sed 's/^/      /' ;;
   esac
-  rm -f /tmp/precommit-lint.$$
+  rm -f "$LINT_TMP"
 done
 
 echo ""
@@ -94,7 +99,7 @@ if [[ $AGENT_CHANGED -eq 1 ]]; then
   if [[ -x "$BUILDER" ]]; then
     set +e
     AGENTS_DIR="$REPO_ROOT/agents" OUT="$INDEX_OUT" \
-      "$BUILDER" --out "$INDEX_OUT" >/tmp/precommit-index.$$ 2>&1
+      "$BUILDER" --out "$INDEX_OUT" >"$INDEX_TMP" 2>&1
     rc=$?
     set -e
 
@@ -103,9 +108,9 @@ if [[ $AGENT_CHANGED -eq 1 ]]; then
       echo "${GRN}📚 AGENTS_INDEX.md regenerado automáticamente${NC}"
     else
       echo "${YLW}⚠ build-index.sh falló (exit $rc) — commit permitido, AGENTS_INDEX.md puede estar desactualizado${NC}" >&2
-      sed 's/^/      /' /tmp/precommit-index.$$ >&2
+      sed 's/^/      /' "$INDEX_TMP" >&2
     fi
-    rm -f /tmp/precommit-index.$$
+    rm -f "$INDEX_TMP"
   else
     echo "${YLW}⚠ build-index.sh no encontrado o no ejecutable — saltando regeneración de AGENTS_INDEX.md${NC}" >&2
   fi
