@@ -229,7 +229,8 @@ scan_body 'wget[[:space:]]+[^|]*\|[[:space:]]*(bash|sh|zsh)' "wget-pipe-shell" "
 scan_body 'curl[[:space:]]+(-X[[:space:]]+POST|--data|-d[[:space:]])' "curl-active-post" "warning"
 
 # Destructive
-scan_body 'rm[[:space:]]+-rf[[:space:]]+(/|~|\$HOME)([[:space:]]|$)' "destructive-rm" "critical"
+# Matchea: rm -rf /, rm -rf ~, rm -rf ~/, rm -rf $HOME, rm -rf ~/anything
+scan_body 'rm[[:space:]]+-rf[[:space:]]+(/|~/?|\$HOME|\$\{HOME\})' "destructive-rm" "critical"
 scan_body 'sudo[[:space:]]+rm[[:space:]]+-rf' "sudo-rm" "critical"
 
 # Eval over dynamic input

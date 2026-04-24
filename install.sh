@@ -89,17 +89,27 @@ cp "$REPO_DIR"/scripts/*.sh "$TARGET_SCRIPTS/"
 cp "$REPO_DIR/scripts/README.md" "$TARGET_SCRIPTS/" 2>/dev/null || true
 chmod +x "$TARGET_SCRIPTS"/*.sh
 
-# Verify with audit
+# Generar índice a partir del frontmatter instalado
 echo ""
-echo "🔍 Validando instalación..."
-if "$TARGET_SCRIPTS/audit-all.sh" 2>&1 | tail -8; then
+echo "📚 Generando catálogo AGENTS_INDEX.md..."
+if "$TARGET_SCRIPTS/build-index.sh" >/dev/null 2>&1; then
+  echo "  ✅ $HOME/.claude/AGENTS_INDEX.md"
+else
+  echo "  ⚠️  build-index falló (continuo)"
+fi
+
+# Validar con audit (genera AUDIT_REPORT.md)
+echo ""
+echo "🔍 Validando instalación (audit completo)..."
+if "$TARGET_SCRIPTS/audit-all.sh" --report 2>&1 | tail -8; then
   echo ""
   echo "✅ Instalación OK."
   echo ""
   echo "Próximos pasos:"
   echo "  1. Activa un agente: 'Hey Claude, activate Frontend Developer mode'"
   echo "  2. Ver el índice:    open ~/.claude/AGENTS_INDEX.md"
-  echo "  3. Audit semanal:    $TARGET_SCRIPTS/audit-all.sh --report"
+  echo "  3. Ver el reporte:   open ~/.claude/AUDIT_REPORT.md"
+  echo "  4. Audit semanal:    $TARGET_SCRIPTS/audit-all.sh --report"
 else
   echo "⚠️  El audit reportó findings — revisa ~/.claude/AUDIT_REPORT.md"
   exit 1
