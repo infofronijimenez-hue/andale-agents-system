@@ -152,7 +152,7 @@ if [[ $WRITE_REPORT -eq 1 ]]; then
     echo "Ejecutar semanalmente:"
     echo ""
     echo '```bash'
-    echo "~/.claude/scripts/audit-all.sh --report"
+    echo '~/.claude/scripts/audit-all.sh --report'
     echo '```'
   } > "$REPORT"
   echo ""

@@ -292,10 +292,10 @@ case "$MODE" in
     total_changes=0
     for f in "${FILES[@]}"; do
       rel="${f#$AGENTS_DIR/}"
-      changes=$(propose_frontmatter "$f" 2>&1 >/dev/null | grep -c '^   [+~]' || true)
-      if [[ "$changes" -gt 0 ]]; then
-        echo "  $rel → $changes cambios"
-        total_changes=$((total_changes + changes))
+      num_changes=$(propose_frontmatter "$f" 2>&1 >/dev/null | grep -c '^   [+~]' || true)
+      if [[ "$num_changes" -gt 0 ]]; then
+        echo "  $rel → $num_changes cambios"
+        total_changes=$((total_changes + num_changes))
       fi
     done
     echo ""

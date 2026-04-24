@@ -131,13 +131,13 @@ trap 'rm -f "$TMP"' EXIT
   echo "## 🔍 Cómo regenerar"
   echo ""
   echo '```bash'
-  echo "~/.claude/scripts/build-index.sh"
+  echo '~/.claude/scripts/build-index.sh'
   echo '```'
   echo ""
   echo "## 🛡️ Cómo auditar"
   echo ""
   echo '```bash'
-  echo "~/.claude/scripts/audit-all.sh"
+  echo '~/.claude/scripts/audit-all.sh'
   echo '```'
 } > "$TMP"
 
