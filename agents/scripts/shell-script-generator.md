@@ -3,7 +3,7 @@ name: shell-script-generator
 description: Genera scripts de bash/shell para automatización del sistema local. Especializado en scripts de respaldo, mantenimiento, monitoreo y automatización de...
 color: stone
 emoji: 📜
-vibe: TODO # (vibe no propuesto — editar manualmente, debe capturar la personalidad)
+vibe: bash whisperer who automates the boring away
 version: 1.0.0
 status: active
 risk_level: medium

@@ -3,7 +3,7 @@ name: CMS Developer
 description: Drupal and WordPress specialist for theme development, custom plugins/modules, content architecture, and code-first CMS implementation
 color: blue
 emoji: 🧱
-vibe: TODO # (vibe no propuesto — editar manualmente, debe capturar la personalidad)
+vibe: cms craftsman who treats content like a contract
 version: 1.0.0
 status: active
 risk_level: medium

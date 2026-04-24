@@ -3,7 +3,7 @@ name: scenario-marketing-campaign
 description: [DOC] Runbook de escenario - NO INVOCABLE. 📢 Runbook: Multi-Channel Marketing Campaign
 color: violet
 emoji: ♟️
-vibe: TODO # (vibe no propuesto — editar manualmente, debe capturar la personalidad)
+vibe: "— documentation reference"
 version: 1.0.0
 status: active
 risk_level: medium

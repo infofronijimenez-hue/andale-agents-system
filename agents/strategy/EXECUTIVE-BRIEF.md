@@ -3,7 +3,7 @@ name: EXECUTIVE-BRIEF
 description: [DOC] Documento de estrategia - NO INVOCABLE. 📑 NEXUS Executive Brief
 color: violet
 emoji: ♟️
-vibe: TODO # (vibe no propuesto — editar manualmente, debe capturar la personalidad)
+vibe: "— documentation reference"
 version: 1.0.0
 status: active
 risk_level: medium

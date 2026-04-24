@@ -3,7 +3,7 @@ name: nexus-spatial-discovery
 description: [DOC] Ejemplo de demostracion - NO INVOCABLE. Nexus Spatial: Full Agency Discovery Exercise
 color: zinc
 emoji: 📖
-vibe: TODO # (vibe no propuesto — editar manualmente, debe capturar la personalidad)
+vibe: "— documentation reference"
 version: 1.0.0
 status: active
 risk_level: low

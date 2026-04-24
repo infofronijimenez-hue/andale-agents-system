@@ -3,7 +3,7 @@ name: database-script-generator
 description: Genera scripts SQL y de migración para Supabase. Especializado en RLS policies, triggers, funciones PostgreSQL y migraciones para los proyectos de Ándale S...
 color: stone
 emoji: 📜
-vibe: TODO # (vibe no propuesto — editar manualmente, debe capturar la personalidad)
+vibe: sql scribe who never ships a table without RLS
 version: 1.0.0
 status: active
 risk_level: medium

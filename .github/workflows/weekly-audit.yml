@@ -1,0 +1,113 @@
+name: Weekly Audit
+
+on:
+  schedule:
+    # Lunes 9am America/Mexico_City (UTC-6) = 15:00 UTC
+    - cron: '0 15 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  audit:
+    name: Weekly agent audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Make scripts executable
+        run: chmod +x scripts/*.sh install.sh
+
+      - name: Install ShellCheck
+        run: sudo apt-get update && sudo apt-get install -y shellcheck
+
+      - name: Verify script syntax
+        run: |
+          for f in scripts/*.sh install.sh; do
+            echo "→ bash -n $f"
+            bash -n "$f"
+          done
+
+      - name: Run audit
+        id: audit
+        env:
+          AGENTS_DIR: ${{ github.workspace }}/agents
+          LINTER: ${{ github.workspace }}/scripts/lint-agent.sh
+          REPORT: ${{ github.workspace }}/AUDIT_REPORT.md
+        run: |
+          set +e
+          ./scripts/audit-all.sh --report --fail-on-critical | tee /tmp/audit.out
+          code=${PIPESTATUS[0]}
+          set -e
+
+          # Parse summary from output
+          total=$(grep -E '^Total agentes:' /tmp/audit.out | awk '{print $NF}' || echo "0")
+          clean=$(grep -E '^✅ Limpios:' /tmp/audit.out | awk '{print $NF}' || echo "0")
+          warn=$(grep -E '^⚠️  Warnings:' /tmp/audit.out | awk '{print $NF}' || echo "0")
+          crit=$(grep -E '^❌ Críticos:' /tmp/audit.out | awk '{print $NF}' || echo "0")
+
+          {
+            echo "total=${total}"
+            echo "clean=${clean}"
+            echo "warn=${warn}"
+            echo "crit=${crit}"
+            echo "exit_code=${code}"
+          } >> "$GITHUB_OUTPUT"
+
+          echo "Audit exit=${code} — critical=${crit}, warnings=${warn}"
+
+      - name: Upload audit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: weekly-audit-report-${{ github.run_id }}
+          path: AUDIT_REPORT.md
+          retention-days: 90
+          if-no-files-found: error
+
+      - name: Create issue on critical findings
+        if: steps.audit.outputs.crit != '0' && steps.audit.outputs.crit != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TOTAL: ${{ steps.audit.outputs.total }}
+          CLEAN: ${{ steps.audit.outputs.clean }}
+          WARN: ${{ steps.audit.outputs.warn }}
+          CRIT: ${{ steps.audit.outputs.crit }}
+        run: |
+          RUN_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          TITLE="[Weekly Audit] ${CRIT} agente(s) críticos detectados — $(date +%Y-%m-%d)"
+
+          {
+            echo "## Resumen de auditoría semanal"
+            echo ""
+            echo "| Métrica | Valor |"
+            echo "|---|---|"
+            echo "| Total agentes | ${TOTAL} |"
+            echo "| Limpios | ${CLEAN} |"
+            echo "| Warnings | ${WARN} |"
+            echo "| **Críticos** | **${CRIT}** |"
+            echo ""
+            echo "Ejecutado por el workflow \`weekly-audit.yml\` el $(date -u +'%Y-%m-%dT%H:%MZ')."
+            echo ""
+            echo "### Acciones requeridas"
+            echo "1. Descargar el artifact \`weekly-audit-report-${GITHUB_RUN_ID}\` para ver el detalle."
+            echo "2. Corregir los agentes críticos antes del próximo deploy."
+            echo "3. Re-ejecutar \`./scripts/audit-all.sh --report\` localmente para verificar."
+            echo ""
+            echo "**Run URL:** ${RUN_URL}"
+          } > /tmp/issue-body.md
+
+          gh issue create \
+            --title "${TITLE}" \
+            --body-file /tmp/issue-body.md \
+            --label "security" \
+            --label "audit" \
+            --label "automated"
+
+      - name: Log (no critical)
+        if: steps.audit.outputs.crit == '0'
+        run: |
+          echo "::notice title=Weekly Audit Clean::Sin críticos. Warnings=${{ steps.audit.outputs.warn }}, Limpios=${{ steps.audit.outputs.clean }}/${{ steps.audit.outputs.total }}"

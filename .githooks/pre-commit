@@ -78,5 +78,38 @@ if [[ $TOTAL_WARN -gt 0 ]]; then
   echo "${YLW}⚠ $TOTAL_WARN warning(s) detectados — commit permitido.${NC}"
 fi
 
+# ─── Regenerar AGENTS_INDEX.md si hubo cambios en agents/*.md ──────────────
+AGENT_CHANGED=0
+for f in "${STAGED[@]}"; do
+  if [[ "$f" == agents/*.md ]]; then
+    AGENT_CHANGED=1
+    break
+  fi
+done
+
+if [[ $AGENT_CHANGED -eq 1 ]]; then
+  BUILDER="$REPO_ROOT/scripts/build-index.sh"
+  INDEX_OUT="$REPO_ROOT/AGENTS_INDEX.md"
+
+  if [[ -x "$BUILDER" ]]; then
+    set +e
+    AGENTS_DIR="$REPO_ROOT/agents" OUT="$INDEX_OUT" \
+      "$BUILDER" --out "$INDEX_OUT" >/tmp/precommit-index.$$ 2>&1
+    rc=$?
+    set -e
+
+    if [[ $rc -eq 0 ]]; then
+      git add "$INDEX_OUT" 2>/dev/null || true
+      echo "${GRN}📚 AGENTS_INDEX.md regenerado automáticamente${NC}"
+    else
+      echo "${YLW}⚠ build-index.sh falló (exit $rc) — commit permitido, AGENTS_INDEX.md puede estar desactualizado${NC}" >&2
+      sed 's/^/      /' /tmp/precommit-index.$$ >&2
+    fi
+    rm -f /tmp/precommit-index.$$
+  else
+    echo "${YLW}⚠ build-index.sh no encontrado o no ejecutable — saltando regeneración de AGENTS_INDEX.md${NC}" >&2
+  fi
+fi
+
 echo "${GRN}✓ pre-commit OK${NC}"
 exit 0

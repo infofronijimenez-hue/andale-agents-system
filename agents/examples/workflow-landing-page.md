@@ -3,7 +3,7 @@ name: workflow-landing-page
 description: [DOC] Workflow de ejemplo - NO INVOCABLE. Multi-Agent Workflow: Landing Page Sprint
 color: zinc
 emoji: 📖
-vibe: TODO # (vibe no propuesto — editar manualmente, debe capturar la personalidad)
+vibe: "— documentation reference"
 version: 1.0.0
 status: active
 risk_level: low
